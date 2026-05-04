@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mappa Illustrata Genova</title>
+    <title>Mappa Illustrata Genova - VicoVivo</title>
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -26,6 +26,7 @@
         #panel img { width: 100%; border-radius: 8px; margin: 15px 0; }
         .close-btn { cursor: pointer; float: right; font-weight: bold; font-size: 24px; }
         #panel-content h2 { margin-top: 0; }
+        .category-badge { display: inline-block; background: #f39c12; color: white; padding: 5px 10px; border-radius: 20px; font-size: 12px; margin-bottom: 10px; }
         #poi-link { display: inline-block; margin-top: 10px; padding: 10px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }
         #poi-link:hover { background: #0056b3; }
     </style>
@@ -38,6 +39,7 @@
     <div id="panel">
         <span class="close-btn" onclick="closePanel()">×</span>
         <div id="panel-content">
+            <span class="category-badge" id="poi-category"></span>
             <h2 id="poi-title">Seleziona un punto</h2>
             <img id="poi-img" src="" alt="Immagine POI" style="display:none;">
             <p id="poi-desc"></p>
@@ -49,66 +51,83 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <script>
-        // 1. Configurazione Mappa (Coordinate semplici in pixel)
+        // 1. Configurazione Mappa
         const map = L.map('map', {
             crs: L.CRS.Simple,
             minZoom: -1,
             maxZoom: 2
         });
 
-        // 2. Carica la tua illustrazione
+        // 2. Carica l'illustrazione
         const w = 4447, h = 6289; 
         const url = 'Mappa-VicoVivo.jpg';
         const bounds = [[0, 0], [h, w]];
         L.imageOverlay(url, bounds).addTo(map);
         map.fitBounds(bounds);
 
-        // 3. Definizione Icone Personalizzate
+        // 3. Icone Personalizzate
         const createIcon = (iconName) => L.icon({
             iconUrl: `icone/${iconName}.svg`,
             iconSize: [38, 38],
             iconAnchor: [19, 38]
         });
 
-        // 4. Dati dei POI (JSON)
+        // 4. Mapping delle categorie
+        const categoryLabels = {
+            "dove-stare": "🏨 Dove Stare",
+            "dove-bere-e-mangiare": "🍽️ Dove Bere e Mangiare",
+            "dove-si-fa-tardi": "🎵 Dove Si Fa Tardi",
+            "comunita-creative": "🎨 Comunità Creative"
+        };
+
+        // 5. Dati POI
         const pois = [
-            {
-                id: 1,
-                name: "Bar Storico",
-                desc: "Un caffè tra i caruggi della vecchia Genova con atmosfera autentica.",
-                img: "https://via.placeholder.com/300x200?text=Bar+Storico",
-                link: "https://maps.google.com/?q=genova+bar",
-                category: "bars",
-                coords: [500, 800]
-            },
-            {
-                id: 2,
-                name: "Museo del Mare",
-                desc: "La storia navale di Genova attraverso collezioni affascinanti.",
-                img: "https://via.placeholder.com/300x200?text=Museo+del+Mare",
-                link: "https://maps.google.com/?q=genova+museo+mare",
-                category: "museums",
-                coords: [700, 1200]
-            },
-            {
-                id: 3,
-                name: "Basilica di San Lorenzo",
-                desc: "Cattedrale gotico-ligure con affascinante architettura medievale.",
-                img: "https://via.placeholder.com/300x200?text=San+Lorenzo",
-                link: "https://maps.google.com/?q=genova+san+lorenzo",
-                category: "churches",
-                coords: [1000, 1500]
-            }
+            // DOVE STARE
+            {id: 1, name: "Piazza Embriaci", desc: "Piazza, punto di ritrovo", img: "https://via.placeholder.com/300x200?text=Piazza+Embriaci", link: "https://www.google.com/maps/place/Piazza+Embriaci,+16123+Genova+GE,+Italy/", category: "dove-stare", coords: [1000, 500]},
+            {id: 2, name: "Piazza delle Erbe", desc: "Piazza, punto di ritrovo", img: "https://via.placeholder.com/300x200?text=Piazza+delle+Erbe", link: "https://www.google.com/maps/place/Piazza+delle+Erbe,+16123+Genova+GE,+Italy/", category: "dove-stare", coords: [1200, 600]},
+            {id: 3, name: "Piazza Sarzano", desc: "Piazza, punto di ritrovo", img: "https://via.placeholder.com/300x200?text=Piazza+Sarzano", link: "https://www.google.com/maps/place/Piazza+Sarzano,+16128+Genova+GE,+Italy/", category: "dove-stare", coords: [1300, 700]},
+            {id: 4, name: "Piazza San Lorenzo", desc: "Piazza, punto di ritrovo", img: "https://via.placeholder.com/300x200?text=Piazza+San+Lorenzo", link: "https://www.google.com/maps/place/Piazza+San+Lorenzo,+16123+Genova+GE,+Italy/", category: "dove-stare", coords: [1100, 800]},
+            {id: 5, name: "Piazza De Ferrari", desc: "Piazza, punto di ritrovo", img: "https://via.placeholder.com/300x200?text=Piazza+De+Ferrari", link: "https://www.google.com/maps/place/Piazza+De+Ferrari,+16121+Genova+GE,+Italy/", category: "dove-stare", coords: [900, 900]},
+
+            // DOVE BERE E MANGIARE
+            {id: 6, name: "Bar degli Asinelli", desc: "Via di Canneto", img: "https://via.placeholder.com/300x200?text=Bar+degli+Asinelli", link: "https://goo.gl/maps/4qKkFf4Dfx9ubr6z5", category: "dove-bere-e-mangiare", coords: [1050, 750]},
+            {id: 7, name: "Ostaia Cicala", desc: "Vico Cicala 27", img: "https://via.placeholder.com/300x200?text=Ostaia+Cicala", link: "https://goo.gl/maps/D2jBZaZd3h9VpRtT9", category: "dove-bere-e-mangiare", coords: [1150, 850]},
+            {id: 8, name: "Dolce Forno Naima", desc: "Via San Luca 6", img: "https://via.placeholder.com/300x200?text=Dolce+Forno", link: "https://goo.gl/maps/MGRDvbZxdGkXZk8s6", category: "dove-bere-e-mangiare", coords: [1250, 700]},
+            {id: 9, name: "Cremeria Buonafede", desc: "Via degli Orefici 59", img: "https://via.placeholder.com/300x200?text=Cremeria", link: "https://goo.gl/maps/A7pwu1oVwMepvAzV7", category: "dove-bere-e-mangiare", coords: [1100, 950]},
+            {id: 10, name: "Fitz Birrificio Genovese", desc: "Via delle Grazie 56r", img: "https://via.placeholder.com/300x200?text=Fitz+Birrificio", link: "https://goo.gl/maps/WPoU2bJwDwK36qUy5", category: "dove-bere-e-mangiare", coords: [1300, 1000]},
+            {id: 11, name: "Casa Nawal", desc: "Piazza di Santa Croce 21r", img: "https://via.placeholder.com/300x200?text=Casa+Nawal", link: "https://goo.gl/maps/EkGNXhVnQJjpt6E37", category: "dove-bere-e-mangiare", coords: [1200, 1100]},
+            {id: 12, name: "La Lepre", desc: "Piazza della Lepre 5", img: "https://via.placeholder.com/300x200?text=La+Lepre", link: "https://goo.gl/maps/8QEqQfcXK582", category: "dove-bere-e-mangiare", coords: [1350, 950]},
+            {id: 13, name: "Il Masetto - Hamburgeria", desc: "Via Canneto il Lungo 111r", img: "https://via.placeholder.com/300x200?text=Il+Masetto", link: "https://goo.gl/maps/fQaA3VMkSNQniNxC8", category: "dove-bere-e-mangiare", coords: [1050, 1050]},
+            {id: 14, name: "Monte di Noè", desc: "Via S. Lorenzo 35r", img: "https://via.placeholder.com/300x200?text=Monte+di+Noè", link: "https://goo.gl/maps/tVzH3qKxYpJ9sKhk9", category: "dove-bere-e-mangiare", coords: [1150, 1200]},
+            {id: 15, name: "Loska", desc: "Via di Sant'Agnese 25r", img: "https://via.placeholder.com/300x200?text=Loska", link: "https://goo.gl/maps/PqV2RkWj8pK5mN3k7", category: "dove-bere-e-mangiare", coords: [1300, 1150]},
+            {id: 16, name: "Ai Troeggi", desc: "Via Chiabrera 61r", img: "https://via.placeholder.com/300x200?text=Ai+Troeggi", link: "https://goo.gl/maps/kM9nQwL2vB4rJ5w8A", category: "dove-bere-e-mangiare", coords: [1400, 1000]},
+
+            // DOVE SI FA TARDI
+            {id: 17, name: "fela! Music Bar", desc: "Vico dietro il coro di San Cosimo 6r", img: "https://via.placeholder.com/300x200?text=fela+Music+Bar", link: "https://goo.gl/maps/nS7V5HiK8a8rBVV77", category: "dove-si-fa-tardi", coords: [1250, 1250]},
+            {id: 18, name: "Lucrezia Social Bar", desc: "Vico Caprettari 16", img: "https://via.placeholder.com/300x200?text=Lucrezia+Social+Bar", link: "https://goo.gl/maps/iBaGw3Cp7fcEKMTG7", category: "dove-si-fa-tardi", coords: [1350, 1300]},
+            {id: 19, name: "Quaalude RockClub", desc: "Piazza di Sarzano 46r", img: "https://via.placeholder.com/300x200?text=Quaalude+RockClub", link: "https://goo.gl/maps/LVZro6jqTs6vDZPUA", category: "dove-si-fa-tardi", coords: [1400, 1150]},
+            {id: 20, name: "Banano Tsunami", desc: "Porto Antico, Ponte Embriaco 1", img: "https://via.placeholder.com/300x200?text=Banano+Tsunami", link: "https://goo.gl/maps/oocqW66ky4nEHHJcA", category: "dove-si-fa-tardi", coords: [1100, 1300]},
+            {id: 21, name: "MaddAlive", desc: "Vico della Chiesa della Maddalena 20r", img: "https://via.placeholder.com/300x200?text=MaddAlive", link: "https://goo.gl/maps/ZveEQ1BonqjVgz6r8", category: "dove-si-fa-tardi", coords: [1200, 1350]},
+
+            // COMUNITA CREATIVE
+            {id: 22, name: "Quasi Casa", desc: "Vico Doria 1", img: "https://via.placeholder.com/300x200?text=Quasi+Casa", link: "https://maps.app.goo.gl/4FqhrxqFxEggv5m98", category: "comunita-creative", coords: [1500, 1100]},
+            {id: 23, name: "KATARTIKA ART", desc: "Vico dei Greci 6", img: "https://via.placeholder.com/300x200?text=KATARTIKA+ART", link: "https://maps.app.goo.gl/kD4xiKjBQpLctXFo6", category: "comunita-creative", coords: [1550, 1200]},
+            {id: 24, name: "U.S. San Bernardo", desc: "Via delle Grazie 40r", img: "https://via.placeholder.com/300x200?text=US+San+Bernardo", link: "https://maps.app.goo.gl/mGRRg8uBh57GUJ496", category: "comunita-creative", coords: [1400, 1300]},
+            {id: 25, name: "Giardini Luzzati", desc: "Giardini Emanuele Luzzati 1", img: "https://via.placeholder.com/300x200?text=Giardini+Luzzati", link: "https://maps.app.goo.gl/iy9vovuFvpTrz9Kj9", category: "comunita-creative", coords: [1600, 1250]},
+            {id: 26, name: "Cinemino Ad Astra", desc: "Vico della Cittadella 6", img: "https://via.placeholder.com/300x200?text=Cinemino+Ad+Astra", link: "https://maps.app.goo.gl/xSh6QE5UVYXyaiut7", category: "comunita-creative", coords: [1500, 1350]},
+            {id: 27, name: "Zenuino", desc: "Vico del Fieno 27r", img: "https://via.placeholder.com/300x200?text=Zenuino", link: "https://maps.app.goo.gl/dZmTNC4vRkvuoKjF9", category: "comunita-creative", coords: [1450, 1100]},
+            {id: 28, name: "Libera collina di Castello", desc: "Piazza di Santa Maria in Passione", img: "https://via.placeholder.com/300x200?text=Libera+Collina", link: "https://maps.app.goo.gl/8dtcMjeXfhv3EahR8", category: "comunita-creative", coords: [1550, 1400]}
         ];
 
-        // 5. Aggiungi Marker alla Mappa
+        // 6. Aggiungi Marker
         pois.forEach(poi => {
             const marker = L.marker(poi.coords, { icon: createIcon(poi.category) }).addTo(map);
             marker.on('click', () => openPanel(poi));
         });
 
-        // 6. Funzioni Interazione
+        // 7. Funzioni
         function openPanel(poi) {
+            document.getElementById('poi-category').innerText = categoryLabels[poi.category] || poi.category;
             document.getElementById('poi-title').innerText = poi.name;
             document.getElementById('poi-desc').innerText = poi.desc;
             const img = document.getElementById('poi-img');
