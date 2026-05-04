@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mappa Illustrata Genova</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        body { margin: 0; padding: 0; font-family: sans-serif; overflow: hidden; }
+        #map { height: 100vh; width: 100vw; background: #f4f1ea; }
+
+        /* Pannello Laterale */
+        #panel {
+            position: fixed;
+            top: 0; right: -400px;
+            width: 350px; height: 100vh;
+            background: white; z-index: 1000;
+            transition: 0.3s ease; padding: 20px;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+        #panel.active { right: 0; }
+        #panel img { width: 100%; border-radius: 8px; margin: 15px 0; }
+        .close-btn { cursor: pointer; float: right; font-weight: bold; font-size: 24px; }
+        #panel-content h2 { margin-top: 0; }
+        #poi-link { display: inline-block; margin-top: 10px; padding: 10px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }
+        #poi-link:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <!-- Pannello Laterale -->
+    <div id="panel">
+        <span class="close-btn" onclick="closePanel()">×</span>
+        <div id="panel-content">
+            <h2 id="poi-title">Seleziona un punto</h2>
+            <img id="poi-img" src="" alt="Immagine POI" style="display:none;">
+            <p id="poi-desc"></p>
+            <a id="poi-link" href="#" target="_blank">Vedi su Google Maps</a>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // 1. Configurazione Mappa (Coordinate semplici in pixel)
+        const map = L.map('map', {
+            crs: L.CRS.Simple,
+            minZoom: -1,
+            maxZoom: 2
+        });
+
+        // 2. Carica la tua illustrazione
+        const w = 4447, h = 6289; 
+        const url = 'Mappa-VicoVivo.jpg';
+        const bounds = [[0, 0], [h, w]];
+        L.imageOverlay(url, bounds).addTo(map);
+        map.fitBounds(bounds);
+
+        // 3. Definizione Icone Personalizzate
+        const createIcon = (iconName) => L.icon({
+            iconUrl: `icone/${iconName}.svg`,
+            iconSize: [38, 38],
+            iconAnchor: [19, 38]
+        });
+
+        // 4. Dati dei POI (JSON)
+        const pois = [
+            {
+                id: 1,
+                name: "Bar Storico",
+                desc: "Un caffè tra i caruggi della vecchia Genova con atmosfera autentica.",
+                img: "https://via.placeholder.com/300x200?text=Bar+Storico",
+                link: "https://maps.google.com/?q=genova+bar",
+                category: "bars",
+                coords: [500, 800]
+            },
+            {
+                id: 2,
+                name: "Museo del Mare",
+                desc: "La storia navale di Genova attraverso collezioni affascinanti.",
+                img: "https://via.placeholder.com/300x200?text=Museo+del+Mare",
+                link: "https://maps.google.com/?q=genova+museo+mare",
+                category: "museums",
+                coords: [700, 1200]
+            },
+            {
+                id: 3,
+                name: "Basilica di San Lorenzo",
+                desc: "Cattedrale gotico-ligure con affascinante architettura medievale.",
+                img: "https://via.placeholder.com/300x200?text=San+Lorenzo",
+                link: "https://maps.google.com/?q=genova+san+lorenzo",
+                category: "churches",
+                coords: [1000, 1500]
+            }
+        ];
+
+        // 5. Aggiungi Marker alla Mappa
+        pois.forEach(poi => {
+            const marker = L.marker(poi.coords, { icon: createIcon(poi.category) }).addTo(map);
+            marker.on('click', () => openPanel(poi));
+        });
+
+        // 6. Funzioni Interazione
+        function openPanel(poi) {
+            document.getElementById('poi-title').innerText = poi.name;
+            document.getElementById('poi-desc').innerText = poi.desc;
+            const img = document.getElementById('poi-img');
+            img.src = poi.img;
+            img.style.display = 'block';
+            document.getElementById('poi-link').href = poi.link;
+            document.getElementById('panel').classList.add('active');
+        }
+
+        function closePanel() {
+            document.getElementById('panel').classList.remove('active');
+        }
+    </script>
+</body>
+</html>
